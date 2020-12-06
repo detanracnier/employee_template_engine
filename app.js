@@ -9,15 +9,108 @@ const OUTPUT_DIR = path.resolve(__dirname, "output");
 const outputPath = path.join(OUTPUT_DIR, "team.html");
 
 const render = require("./lib/htmlRenderer");
-
+const { get } = require("https");
 
 // Write code to use inquirer to gather information about the development team members,
 // and to create objects for each team member (using the correct classes as blueprints!)
+async function createEmployee() {
+    try {
+        let employeeObj;
+        const employeeInfo = await inquirer.prompt([
+            {
+                type: "input",
+                message: "Employee Name:",
+                name: "name"
+            },
+            {
+                type: "input",
+                message: "Employee ID:",
+                name: "id"
+            },
+            {
+                type: "input",
+                message: "Employee Email:",
+                name: "email"
+            },
+            {
+                type: "list",
+                message: "Role:",
+                name: "role",
+                choices: ['Manager', 'Engineer', 'Intern']
+            }
+        ])
+        switch (employeeInfo.role) {
+            case "Manager":
+                const officeNumber = await inquirer.prompt([
+                    {
+                        type: "input",
+                        message: "Office Number:",
+                        name: "officeNumber"
+                    }])
+                //do some error checking
+                employeeObj = new Manager(employeeInfo.name, employeeInfo.id, employeeInfo.email, officeNumber.officeNumber);
+                return employeeObj;
+            case "Engineer":
+                const github = await inquirer.prompt([
+                    {
+                        type: "input",
+                        message: "Github:",
+                        name: "github"
+                    }])
+                //do some error checking
+                employeeObj = new Engineer(employeeInfo.name, employeeInfo.id, employeeInfo.email, github.github);
+                return employeeObj;
+            case "Intern":
+                const school = await inquirer.prompt([
+                    {
+                        type: "input",
+                        message: "School:",
+                        name: "school"
+                    }])
+                //do some error checking
+                employeeObj = new Intern(employeeInfo.name, employeeInfo.id, employeeInfo.email, school.school);
+                return employeeObj;
+            default:
+                console.log("Employee role not found");
+                return
+        }
+    } catch (error) {
+        console.log(error);
+    }
+}
+async function getEmployees(){
+    const employees = [];
+    let loop = true;
+    do {
+        let newEmployee = await createEmployee();
+        employees.push(newEmployee);
+        await inquirer.prompt([
+            {
+                type: "list",
+                message: "Add more employees?:",
+                name: "continue",
+                choices: ['Yes','No']
+             },
+        ]).then(response => {
+            response.continue === "Yes" ? loop = true : loop = false;
+        }).catch(error => {
+            console.log(error);
+        })
+    } while(loop);
+    return employees;
+}
 
 // After the user has input all employees desired, call the `render` function (required
 // above) and pass in an array containing all employee objects; the `render` function will
 // generate and return a block of HTML including templated divs for each employee!
-
+getEmployees().then((employees) => {
+    let html = render(employees);
+    fs.writeFile(outputPath,html,function (error){
+        if(error){
+            console.log(error);
+        }
+    })
+});
 // After you have your html, you're now ready to create an HTML file using the HTML
 // returned from the `render` function. Now write it to a file named `team.html` in the
 // `output` folder. You can use the variable `outputPath` above target this location.
